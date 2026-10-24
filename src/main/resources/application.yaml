@@ -1,0 +1,89 @@
+spring:
+  application:
+    name: food-scanner-api-server
+  config:
+    # Local secrets such as GEMINI_API_KEY=... (see .env.example). Real
+    # environment variables still win. The file is git-ignored.
+    import: optional:file:.env[.properties]
+  docker:
+    compose:
+      # Postgres is started with `docker compose up -d` (see compose.yaml);
+      # Spring's auto-start needs a newer Docker CLI than some machines have.
+      enabled: false
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 500
+        order_inserts: true
+        order_updates: true
+  flyway:
+    locations: classpath:db/migration
+
+  mvc:
+    problemdetails:
+      enabled: true
+  threads:
+    virtual:
+      # @Async scan processing runs on virtual threads; it mostly waits on the AI call.
+      enabled: true
+
+foodscan:
+  auth:
+    # HMAC key for signing access tokens; at least 32 bytes. The default is
+    # for local development only - always set JWT_SECRET in any real deployment.
+    jwt-secret: ${JWT_SECRET:local-dev-only-secret-change-me-0123456789}
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+  cors:
+    # Comma-separated browser origins allowed to call the API (the Expo web dev
+    # server by default). Native apps send no Origin header and aren't affected.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  vision:
+    # Which AI analyzes meal photos: gemini or claude.
+    provider: ${VISION_PROVIDER:gemini}
+    gemini:
+      # Free key from https://aistudio.google.com/apikey. Free-tier requests are
+      # rate limited and Google may use them to improve its products.
+      api-key: ${GEMINI_API_KEY}
+      model: ${GEMINI_MODEL}
+      base-url: https://generativelanguage.googleapis.com
+      max-output-tokens: 8192
+    claude:
+      api-key: ${ANTHROPIC_API_KEY:}
+      model: claude-opus-5-5
+      effort: medium
+      max-tokens: 16000
+      # Server-side fallback: if the model declines a request, the API retries
+      # it on a fallback model instead of failing the scan.
+      refusal-fallback: true
+  storage:
+    # local: files under local-dir, uploaded through this API (development).
+    # s3: any S3-compatible store, e.g. Cloudflare R2 (set the s3.* values).
+    type: ${STORAGE_TYPE:local}
+    local-dir: ${STORAGE_LOCAL_DIR:./data/uploads}
+    max-image-bytes: 5242880
+    upload-url-ttl: 10m
+    s3:
+      bucket: ${S3_BUCKET}
+      endpoint: ${S3_ENDPOINT}
+      region: ${S3_REGION}
+      access-key: ${S3_ACCESS_KEY}
+      secret-key: ${S3_SECRET_KEY}
+  usda:
+    # Directory holding the FoodData Central JSON zips. When set, the importer
+    # runs once at startup (see UsdaImportRunner).
+    import-dir: ${USDA_IMPORT_DIR:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

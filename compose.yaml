@@ -1,0 +1,19 @@
+# Fixed project name so containers don't depend on the folder name.
+name: food-scanner
+
+services:
+  postgres:
+    image: 'pgvector/pgvector:pg17'
+    environment:
+      - 'POSTGRES_DB=foodscan'
+      - 'POSTGRES_USER=foodscan'
+      - 'POSTGRES_PASSWORD=foodscan'
+    ports:
+      - '55432:5432'
+    volumes:
+      - 'pgdata:/var/lib/postgresql/data'
+
+volumes:
+  pgdata:
+    # Created when this folder was still called "backend"; keeps the existing data.
+    name: backend_pgdata
