@@ -1,0 +1,9 @@
+# Keep secrets, build output and local data out of the build context.
+.env
+target/
+data/
+.git/
+.idea/
+.vscode/
+*.iml
+HELP.md
